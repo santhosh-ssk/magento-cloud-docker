@@ -72,11 +72,11 @@ class Relationship
      *
      * @throws ConfigurationMismatchException
      */
-    public function get(): array
+    public function get(\Illuminate\Config\Repository $configInput): array
     {
         $relationships = [];
         foreach (self::$defaultConfiguration as $serviceName => $serviceConfig) {
-            if ($this->config->getServiceVersion($this->convertServiceName($serviceName))) {
+            if ($this->config->getServiceVersion($this->convertServiceName($serviceName), $configInput)) {
                 $relationships[$serviceName] = $serviceConfig;
             }
         }

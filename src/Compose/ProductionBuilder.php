@@ -631,7 +631,15 @@ class ProductionBuilder implements BuilderInterface
     protected function getMagentoVolumes(bool $isReadOnly = true): array
     {
         $volumes = $this->getDefaultMagentoVolumes($isReadOnly);
-        $volumeConfiguration = $this->appReader->read()['mounts'];
+        try {
+            $volumeConfiguration = $this->appReader->read()['mounts'];
+        } catch (FilesystemException $exception) {
+            if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+                throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
+            } else {
+                return $this->getMagentoVolumesOnPremise($isReadOnly);
+            }
+        }
 
         foreach (array_keys($volumeConfiguration) as $volume) {
             $volumes[] = sprintf(
@@ -639,6 +647,31 @@ class ProductionBuilder implements BuilderInterface
                 'magento-' . str_replace('/', '-', $volume),
                 self::DIR_MAGENTO . '/' . $volume
             );
+        }
+
+        return $volumes;
+    }
+
+    /**
+     * @param bool $isReadOnly
+     * @return array
+     */
+    protected function getMagentoVolumesOnPremise(bool $isReadOnly): array
+    {
+        $flag = $isReadOnly ? ':ro' : ':rw';
+
+        $volumes = [
+            'magento:' . self::DIR_MAGENTO . $flag,
+            'magento-vendor:' . self::DIR_MAGENTO . '/vendor' . $flag,
+            'magento-generated:' . self::DIR_MAGENTO . '/generated' . $flag,
+            'magento-var:' . self::DIR_MAGENTO . '/var:delegated',
+            'magento-etc:' . self::DIR_MAGENTO . '/app/etc:delegated',
+            'magento-static:' . self::DIR_MAGENTO . '/pub/static:delegated',
+            'magento-media:' . self::DIR_MAGENTO . '/pub/media:delegated',
+        ];
+
+        if ($this->hasSelenium()) {
+            $volumes[] = 'magento-dev:' . self::DIR_MAGENTO . '/dev:delegated';
         }
 
         return $volumes;

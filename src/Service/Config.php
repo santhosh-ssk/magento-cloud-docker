@@ -84,16 +84,28 @@ class Config
      * @return string|null
      * @throws ConfigurationMismatchException
      */
-    public function getServiceVersion(string $serviceName)
+    public function getServiceVersion(string $serviceName, \Illuminate\Config\Repository $configInput = null)
     {
         try {
-            $version = $serviceName === ServiceInterface::NAME_PHP
-                ? $this->getPhpVersion()
-                : $this->reader->read()['services'][$serviceName]['version'] ?? null;
-
+            if (!is_null($configInput) && $configInput->offsetExists($serviceName)) {
+                $version = $configInput->get($serviceName);
+            } else {                
+                $version = $serviceName === ServiceInterface::NAME_PHP
+                    ? $this->getPhpVersion($configInput)
+                    : $this->reader->read()['services'][$serviceName]['version'] ?? null;                
+            }
             return $version;
-        } catch (FilesystemException $exception) {
-            throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
+        } catch (FilesystemException $exception) {            
+            if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+                throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
+            } else {
+                if ($serviceName === ServiceInterface::NAME_RABBITMQ) {
+                    return null;
+                } else {
+                    $message = 'Required version number of ' . $serviceName . ' service wasn\'t found anywhere (both cmd line and cloud-yaml files).';
+                    throw new ConfigurationMismatchException($message, $exception->getCode());
+                }
+            }
         }
     }
 
@@ -103,13 +115,21 @@ class Config
      * @return string
      * @throws ConfigurationMismatchException when PHP is not configured
      */
-    public function getPhpVersion(): string
+    public function getPhpVersion(\Illuminate\Config\Repository $configInput = null): string
     {
         try {
+            if (!is_null($configInput) && $configInput->offsetExists($serviceName)) {
+                $version = $configInput->get($serviceName);
+            }
             $config = $this->reader->read();
             list($type, $version) = explode(':', $config['type']);
         } catch (FilesystemException $exception) {
-            throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
+            if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+                throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
+            } else {
+                $message = 'Required version number of php service wasn\'t found anywhere (both cmd line and cloud-yaml files).';
+                throw new ConfigurationMismatchException($message, $exception->getCode());
+            }
         }
 
         if ($type !== ServiceInterface::NAME_PHP) {
@@ -133,10 +153,15 @@ class Config
      */
     public function getCron(): array
     {
+        $default = [];
         try {
             return $this->reader->read()['crons'] ?? [];
         } catch (FilesystemException $exception) {
-            throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
+            if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+                throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
+            } else {
+                return $default;
+            }
         }
     }
 
@@ -145,11 +170,27 @@ class Config
      * @throws ConfigurationMismatchException
      */
     public function getEnabledPhpExtensions(): array
-    {
+    {        
+        $default = [
+            'redis',
+            'xsl',
+            'json',
+            'blackfire',
+            'newrelic',
+            'sodium'
+        ];
         try {
-            return $this->reader->read()['runtime']['extensions'];
+            if (array_key_exists('runtime', $this->reader->read())) {
+                return $this->reader->read()['runtime']['extensions'];
+            } else {                
+                return $default;
+            }
         } catch (FilesystemException $exception) {
-            throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
+            if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+                throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
+            } else {
+                return $default;
+            }
         }
     }
 
@@ -159,10 +200,19 @@ class Config
      */
     public function getDisabledPhpExtensions(): array
     {
+        $default = [];        
         try {
-            return $this->reader->read()['runtime']['disabled_extensions'];
+            if (array_key_exists('runtime', $this->reader->read())) {
+                return $this->reader->read()['runtime']['disabled_extensions'];
+            } else {
+                return [];
+            }
         } catch (FilesystemException $exception) {
-            throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
+           if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+                throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
+            } else {
+                return $default;
+            }
         }
     }
 }

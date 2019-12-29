@@ -82,12 +82,12 @@ class Generator
      *
      * @throws ConfigurationMismatchException if can't obtain relationships
      */
-    public function generate()
+    public function generate(\Illuminate\Config\Repository $configInput)
     {
         $configPath = $this->directoryList->getDockerRoot() . '/config.php.dist';
 
         $config = array_merge(
-            ['MAGENTO_CLOUD_RELATIONSHIPS' => $this->relationship->get()],
+            ['MAGENTO_CLOUD_RELATIONSHIPS' => $this->relationship->get($configInput)],
             self::$baseConfig
         );
 

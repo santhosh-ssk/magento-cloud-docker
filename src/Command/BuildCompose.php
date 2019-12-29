@@ -263,7 +263,7 @@ class BuildCompose extends Command
             [BuilderFactory::BUILDER_DEVELOPER, BuilderFactory::BUILDER_PRODUCTION],
             false
         )) {
-            $this->distGenerator->generate();
+            $this->distGenerator->generate($config);
         }
 
         $builder->setConfig($config);
