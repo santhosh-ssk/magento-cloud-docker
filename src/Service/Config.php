@@ -96,7 +96,7 @@ class Config
             }
             return $version;
         } catch (FilesystemException $exception) {            
-            if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+            if ($exception->getPrevious() instanceof \Illuminate\Contracts\Filesystem\FileNotFoundException) {
                 throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
             } else {
                 if ($serviceName === ServiceInterface::NAME_RABBITMQ) {
@@ -124,7 +124,7 @@ class Config
             $config = $this->reader->read();
             list($type, $version) = explode(':', $config['type']);
         } catch (FilesystemException $exception) {
-            if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+            if ($exception->getPrevious() instanceof \Illuminate\Contracts\Filesystem\FileNotFoundException) {
                 throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
             } else {
                 $message = 'Required version number of php service wasn\'t found anywhere (both cmd line and cloud-yaml files).';
@@ -157,7 +157,7 @@ class Config
         try {
             return $this->reader->read()['crons'] ?? [];
         } catch (FilesystemException $exception) {
-            if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+            if ($exception->getPrevious() instanceof \Illuminate\Contracts\Filesystem\FileNotFoundException) {
                 throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
             } else {
                 return $default;
@@ -186,7 +186,7 @@ class Config
                 return $default;
             }
         } catch (FilesystemException $exception) {
-            if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+            if ($exception->getPrevious() instanceof \Illuminate\Contracts\Filesystem\FileNotFoundException) {
                 throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
             } else {
                 return $default;
@@ -208,7 +208,7 @@ class Config
                 return [];
             }
         } catch (FilesystemException $exception) {
-           if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+           if ($exception->getPrevious() instanceof \Illuminate\Contracts\Filesystem\FileNotFoundException) {
                 throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
             } else {
                 return $default;

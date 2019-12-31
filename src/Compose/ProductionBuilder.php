@@ -634,7 +634,7 @@ class ProductionBuilder implements BuilderInterface
         try {
             $volumeConfiguration = $this->appReader->read()['mounts'];
         } catch (FilesystemException $exception) {
-            if (strpos($exception->getMessage(),'File does not exist at path') === false) {
+            if ($exception->getPrevious() instanceof \Illuminate\Contracts\Filesystem\FileNotFoundException) {
                 throw new ConfigurationMismatchException($exception->getMessage(), $exception->getCode(), $exception);
             } else {
                 return $this->getMagentoVolumesOnPremise($isReadOnly);
